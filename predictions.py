@@ -35,6 +35,7 @@ print auth
 #Invoke training mehanism post
 headers = {"Content-Type":"application/json", 
            "Authorization":"GoogleLogin auth={a}".format(a=auth)}
+#START HERE - how should data be formatted - see curl example that works
 data = {'data':{}}
 # Append mybucket and mydata to URI
 my_bucket="bobbuzz"

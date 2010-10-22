@@ -1,0 +1,6 @@
+curl -X POST -H "Content-Type:application/json"  -d "{\"data\":{}}"   -H "Authorization: GoogleLogin  auth=DQAAALAAAAAsqp3i7rj0F7FKoe-q9KHZvV5gF5_d81X8uIOSU36mAjmbERggyaHRwPExQguoAEt3Q2ZoMbXUzXq2dIdjQMWy6bSoMD0T_1ki1_fSNjqcD5U56dVRqDhvIQhwZ6jaO0cii3xiqmF3xEvEJyewFuElQ1iUiEJrgZE23IlAmkBUPOZW9X-2BcVYaFGpnhqTLgcy2eQ6EQ95NPF-a_pr4B3H8QQL4dPvD8w7u5YYDxdImw" https://www.googleapis.com/prediction/v1.1/training?data=bobbuzz%2F$buzz.1287716015.22
+  
+
+
+completed?
+curl -H "Authorization: GoogleLogin   auth=DQAAALAAAAAsqp3i7rj0F7FKoe-q9KHZvV5gF5_d81X8uIOSU36mAjmbERggyaHRwPExQguoAEt3Q2ZoMbXUzXq2dIdjQMWy6bSoMD0T_1ki1_fSNjqcD5U56dVRqDhvIQhwZ6jaO0cii3xiqmF3xEvEJyewFuElQ1iUiEJrgZE23IlAmkBUPOZW9X-2BcVYaFGpnhqTLgcy2eQ6EQ95NPF-a_pr4B3H8QQL4dPvD8w7u5YYDxdImw"  https://www.googleapis.com/prediction/v1.1/training/bobbuzz%2Fbuzz.1287716015.22
