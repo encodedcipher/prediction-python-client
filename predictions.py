@@ -1,3 +1,4 @@
+""" Prediction client """
 import sys
 import httplib2
 from urllib import urlencode
@@ -24,18 +25,24 @@ try:
     i = content.rindex('Auth')
 except ValueError:
     print("Auth not found in content")
-auth = content[i:].strip("\n")
+authstring = content[i:].strip("\n")
+s_auth = authstring.split("=")
+auth = s_auth[1]
 
 print auth
 
-#Invoke training post
+
+#Invoke training mehanism post
 headers = {"Content-Type":"application/json", 
            "Authorization":"GoogleLogin auth={a}".format(a=auth)}
-data = "{\"data\":{}}"
+data = {'data':{}}
 # Append mybucket and mydata to URI
+my_bucket="bobbuzz"
+my_data = "buzz.1287716015.22"
 my_training_uri = "{t}?data={b}%2F{d}".format(t=TRAINING_URI, b=my_bucket, 
-                                              d=mydata)
+                                              d=my_data)
 
-resp, content = h.request(TRAINING_URI, "POST", urlencode(data), headers=headers)
+resp, content = h.request(my_training_uri, "POST", urlencode(data), headers=headers)
   
+print resp
   #https://www.googleapis.com/prediction/v1.1/training?data=mybucket%2F$mydata.
