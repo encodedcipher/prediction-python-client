@@ -8,7 +8,7 @@ TRAINING_URI = "https://www.googleapis.com/prediction/v1.1/training"
 
 h = httplib2.Http(".cache")
 
-#Request auth token
+#REQUEST AUTH TOKEN
 headers = {"Content-Type":"application/x-www-form-urlencoded"}
 data =  {"accountType":"HOSTED_OR_GOOGLE", "Email":"hancock.robert@gmail.com",
   "Passwd":"w1ls0n1136", "service":"xapi", "source":"account"}
@@ -31,19 +31,40 @@ auth = s_auth[1]
 
 print auth
 
-
-#Invoke training mehanism post
+#INVOKE TRAINING
 headers = {"Content-Type":"application/json", 
            "Authorization":"GoogleLogin auth={a}".format(a=auth)}
-#START HERE - how should data be formatted - see curl example that works
-data = {'data':{}}
+data = '{data:{}}'
 # Append mybucket and mydata to URI
 my_bucket="bobbuzz"
-my_data = "buzz.1287716015.22"
+my_data = "buzz.1287754348.5"
 my_training_uri = "{t}?data={b}%2F{d}".format(t=TRAINING_URI, b=my_bucket, 
                                               d=my_data)
 
-resp, content = h.request(my_training_uri, "POST", urlencode(data), headers=headers)
+resp, content = h.request(my_training_uri, "POST", data, headers=headers)
   
-print resp
-  #https://www.googleapis.com/prediction/v1.1/training?data=mybucket%2F$mydata.
+print resp['status']
+
+
+#IS TRAINING COMPLETE?
+is_complete_uri="{tui}/{b}%2F{d}".format(tui=TRAINING_URI,
+                                         b=my_bucket,
+                                         d=my_data)
+headers = {"Authorization":"GoogleLogin auth={a}".format(a=auth)}
+resp, content = h.request(is_complete_uri, "GET", headers=headers)
+
+status = resp['status'] 
+if status != "200":
+    print("Is training complete status = {s}".format(s=status))
+    sys.exit()
+    
+# Json response
+# parse for  "modelinfo":"Training hasn't completed."
+# else
+# "modelinfo":"estimated accuracy: 0.xx"
+#{"data":{
+   #"data":"mybucket/mydata", "modelinfo":"estimated accuracy: 0.xx"}}}
+#PREDICT
+# Format input as json
+# Invoke query with POST
+# Parse json response
