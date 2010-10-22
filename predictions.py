@@ -1,7 +1,17 @@
 """ Prediction client """
 import sys
+import os
 import httplib2
 from urllib import urlencode
+import json
+
+sys.path.append(os.path.join(os.path.dirname(__file__), 'third_party'))
+try:
+  # This is where simplejson lives on App Engine
+  from django.utils import simplejson
+except (ImportError):
+  import simplejson
+
 
 CLIENT_LOGIN_URI = "https://www.google.com/accounts/ClientLogin"
 TRAINING_URI = "https://www.googleapis.com/prediction/v1.1/training"
@@ -66,5 +76,5 @@ if status != "200":
    #"data":"mybucket/mydata", "modelinfo":"estimated accuracy: 0.xx"}}}
 #PREDICT
 # Format input as json
-# Invoke query with POST
+# Invoke query with POSTpp
 # Parse json response
