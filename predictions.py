@@ -5,12 +5,20 @@ import httplib2
 from urllib import urlencode
 import json
 import getopt
+from optparse import OptionParser
 import time
 
 #sys.path.append(os.path.join(os.path.dirname(__file__), 'third_party'))
 CLIENT_LOGIN_URI = "https://www.google.com/accounts/ClientLogin"
 TRAINING_URI = "https://www.googleapis.com/prediction/v1.1/training"
 
+class Error200(Exception):
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        return repr(self.value)    
+    
+    
 class Prediction():
     def __init__(self, email, password, bucket, data):
         self.email = email
@@ -26,8 +34,8 @@ class Prediction():
         Request auth token
         
         Return
-        auth:   the auth token string
-        None:   failure
+            auth:   the auth token string
+            None:   failure
         """
         headers = {"Content-Type":"application/x-www-form-urlencoded"}
         body =  {"accountType":"HOSTED_OR_GOOGLE", "Email":self.email,
@@ -35,26 +43,25 @@ class Prediction():
         
         resp, content = self.h.request(CLIENT_LOGIN_URI, "POST", urlencode(body), headers=headers)
         
-        # Check code status:200
+        # TODO shoudl this return an errno instead of raising an exception
         if resp["status"] != "200":
-            print ('Response status code {sc}'.format(sc=resp["status"]))
-            return None
+            raise Error200("200")
         
-        # ValueError if not found
         try:
             i = content.rindex('Auth')
         except ValueError:
             print("Auth not found in content")
             authstring = content[i:].strip("\n")
             s_auth = authstring.split("=")
-            auth = s_auth[1]
+            self.auth = s_auth[1]
         
-        self.auth = auth
-
 
     def invoke_training(self):
         """
         Invoke training.
+        
+        Return
+           http status code
         """
         headers = {"Content-Type":"application/json", 
                    "Authorization":"GoogleLogin auth={a}".format(a=self.auth)}
@@ -63,23 +70,14 @@ class Prediction():
                                                       d=self.data)
         
         resp, content = self.h.request(my_training_uri, "POST", body, headers=headers)
-        status = resp['status'] 
-        print status
-        if status != "200":
-            return False
-        
-        return True
+        return resp['status'] 
 
 
     def training_complete(self):
         """
-        Args:
-        bucket:   
-        data:
-
         Return
-            True if training is complete, else False
-            """
+            Accuracy as 0.xx, else -1.0
+        """
         is_complete_uri="{tui}/{b}%2F{d}".format(tui=TRAINING_URI,
                                                  b=self.bucket,
                                                  d=self.data)
@@ -88,6 +86,7 @@ class Prediction():
 
         status = resp['status'] 
         if status != "200":
+            # TODO Should this be -1
             return False
 
         #TODO Check the json
@@ -101,6 +100,7 @@ class Prediction():
         # "modelinfo":"estimated accuracy: 0.xx"
         #{"data":{
         #"data":"mybucket/mydata", "modelinfo":"estimated accuracy: 0.xx"}}}
+        # return accuracy or -1 if not complete
 
     def predict(self):
         pass
@@ -110,26 +110,46 @@ class Prediction():
     # Parse json response
 
 def main():
-    # Command line args
-    email="hancock.robert@gmail.com"
-    password="w1ls0n1136"
-    my_bucket="bobbuzz"
-    my_data = "buzz.1287754348.5"
-    #---------------
+    usage = "%prog email password bucket data"
+    parser = OptionParser(usage)
+    parser.add_option("-D", "--debug", dest="debug", action="store_true",
+                      help="Write debug to stdout.")
+    
+    [options, args] = parser.parse_args()
+    if len(args) < 4:
+        parser.error('Incorrect number of arguments')
+        return -1
+    else:
+        email = args[0]
+        password = args[1]
+        bucket = args[2]
+        data = args[3]
+        
+    debug = True if options.debug else False
 
-    p = Prediction(email, password, my_bucket, my_data)
+    p = Prediction(email, password, bucket, data)
 
-    auth = p.auth_token()
-    if not auth:
+    try:
+        p.auth_token()
+    except ValueError:
+        sys.stderr.write("auth_toke() failed")
         return 1
 
-    if not p.invoke_training():
+    status = p.invoke_training()
+    if status != '200':
+        sys.stderr.write("invoke_training returned: {s}".format(s=status))
         return 1
 
-    while not p.training_complete():
-        print("Still working")
-        time.sleep(30.0)
-    print("Training complete")
+    try:
+        while not p.training_complete():
+            # TODO logging decorator
+            if debug: print("Still training")
+            time.sleep(30.0)
+    except Error200 as e:
+        print e
+        return 1
+    
+    if debug: print("Training complete")
 
 
 if __name__ == "__main__":
