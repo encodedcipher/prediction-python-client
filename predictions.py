@@ -16,6 +16,7 @@ except ImportError:
 #sys.path.append(os.path.join(os.path.dirname(__file__), 'third_party'))
 CLIENT_LOGIN_URI = "https://www.google.com/accounts/ClientLogin"
 TRAINING_URI = "https://www.googleapis.com/prediction/v1.1/training"
+#QUERY_URI="https://www.googleapis.com/prediction/v1.1/query/"
 
 class HTTPError(Exception):
     def __init__(self, value):
@@ -40,6 +41,8 @@ class Prediction():
         
         Return
             auth:   the auth token string
+            
+        If it fails, should it return a dict of data
         """
         headers = {"Content-Type":"application/x-www-form-urlencoded"}
         body =  {"accountType":"HOSTED_OR_GOOGLE", "Email":self.email,
@@ -47,10 +50,27 @@ class Prediction():
         
         resp, content = self.h.request(CLIENT_LOGIN_URI, "POST", urlencode(body), headers=headers)
         
-        # TODO shoudl this return an errno instead of raising an exception
         status = resp["status"]
+        #TODO
+        # Raise an exception or return the verification data in a dict
         if status != "200":
-            raise HTTPError('HTTP status code: {s}'.format(s=status))
+            if status == "403":
+                #TODO deal with captcha user interface
+                error_text = content["Error"]
+                if error_text == "CaptchaRequired":
+                    captcha_token = content["CaptchaToken"]
+                    captcha_url = content["CaptchaUrl"]
+                    #HTTP/1.0 403 Access Forbidden
+                    #Server: GFE/1.3
+                    #Content-Type: text/plain
+	
+                    #Url=http://www.google.com/login/captcha
+                    #Error=CaptchaRequired
+                    #CaptchaToken=DQAAAGgA...dkI1LK9
+                    #CaptchaUrl=Captcha?ctoken=HiteT4b0Bk5Xg18_AcVoP6-yFkHPibe7O9EqxeiI7lUSN
+                else:
+                    status_text = "{s}: {t}".format(s=status, t=text)
+            raise HTTPError('HTTP status code: {s}'.format(s=status_text))
         
         try:
             i = content.rindex('Auth')
@@ -64,7 +84,7 @@ class Prediction():
 
     def invoke_training(self):
         """
-        Invoke training.
+        Invoke training. 
         
         Return
            http status code
@@ -103,6 +123,10 @@ class Prediction():
         
         return modelinfo
 
+    def format_prediction_request(self):
+        pass
+    
+    
     def predict(self):
         pass
     #PREDICT
@@ -110,9 +134,13 @@ class Prediction():
     # Invoke query with POSTpp
     # Parse json response
 
+    def delete_model(self):
+        """ Delete a previously trained mode. """
+        pass
+    
 def main():
-    #TODO verify email
-    # verify bucket adn data - boto?
+    # TODO
+    #verify bucket adn data - boto?
     # make properties of some elements
     usage = "%prog email password bucket data"
     parser = OptionParser(usage)
@@ -145,6 +173,7 @@ def main():
         sys.stderr.write("invoke_training returned: {ex}".format(ex=e))
         return 1
 
+    # TODO Maintain any type of state in a cookie?
     training_complete = False
     while not training_complete:
         retval =  p.training_complete()
@@ -154,10 +183,12 @@ def main():
         time.sleep(30.0)
     
     if "HTTP" in retval:
-        print("training_complete returned HTTP status code: {c}".format(c=retval))
+        print("training_complete() returned HTTP status code: {c}".format(c=retval))
+        return 1
     else:
         print("Estimated accuracy: {a}".format(a=retval))
         
+    
 
 
 if __name__ == "__main__":
