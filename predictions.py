@@ -44,8 +44,9 @@ class Prediction():
         resp, content = self.h.request(CLIENT_LOGIN_URI, "POST", urlencode(body), headers=headers)
         
         # TODO shoudl this return an errno instead of raising an exception
-        if resp["status"] != "200":
-            raise Error200("200")
+        status = resp["status"]
+        if status != "200":
+            return status
         
         try:
             i = content.rindex('Auth')
@@ -55,6 +56,7 @@ class Prediction():
             s_auth = authstring.split("=")
             self.auth = s_auth[1]
         
+        return status
 
     def invoke_training(self):
         """
