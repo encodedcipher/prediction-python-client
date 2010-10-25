@@ -40,22 +40,26 @@ class Prediction():
         Request auth token
         
         Return
-            auth:   the auth token string
+            A dictonary with keys
+            Status - HTTP status code (required)
+            Error - 
             
-        If it fails, should it return a dict of data
+        If it fails, should it return a dict of data.
         """
+        retval = {"Status":""}
         headers = {"Content-Type":"application/x-www-form-urlencoded"}
         body =  {"accountType":"HOSTED_OR_GOOGLE", "Email":self.email,
                  "Passwd":self.password, "service":"xapi", "source":"account"}
         
-        resp, content = self.h.request(CLIENT_LOGIN_URI, "POST", urlencode(body), headers=headers)
+        resp, content = self.h.request(CLIENT_LOGIN_URI, "POST", urlencode(body),
+                                       headers=headers)
         
         status = resp["status"]
+        retval["HTTPStatus"] = status
         #TODO
         # Raise an exception or return the verification data in a dict
         if status != "200":
             if status == "403":
-                #TODO deal with captcha user interface
                 error_text = content["Error"]
                 if error_text == "CaptchaRequired":
                     captcha_token = content["CaptchaToken"]
@@ -65,22 +69,23 @@ class Prediction():
                     #Content-Type: text/plain
 	
                     #Url=http://www.google.com/login/captcha
-                    #Error=CaptchaRequired
-                    #CaptchaToken=DQAAAGgA...dkI1LK9
-                    #CaptchaUrl=Captcha?ctoken=HiteT4b0Bk5Xg18_AcVoP6-yFkHPibe7O9EqxeiI7lUSN
+                    
                 else:
                     status_text = "{s}: {t}".format(s=status, t=text)
-            raise HTTPError('HTTP status code: {s}'.format(s=status_text))
+            #raise HTTPError('HTTP status code: {s}'.format(s=status_text))
         
         try:
             i = content.rindex('Auth')
         except ValueError:
-            raise ValueError("Auth not found in content")
+            #raise ValueError("Auth not found in content")
+            retval["Error"] = "Auth not found in content"
+            return retval
         
         authstring = content[i:].strip("\n")
         s_auth = authstring.split("=")
         self.auth = s_auth[1]
         
+        return retval
 
     def invoke_training(self):
         """
@@ -92,10 +97,10 @@ class Prediction():
         headers = {"Content-Type":"application/json", 
                    "Authorization":"GoogleLogin auth={a}".format(a=self.auth)}
         body = '{data:{}}'
-        my_training_uri = "{t}?data={b}%2F{d}".format(t=TRAINING_URI, b=self.bucket, 
+        training_uri = "{t}?data={b}%2F{d}".format(t=TRAINING_URI, b=self.bucket, 
                                                       d=self.data)
         
-        resp, content = self.h.request(my_training_uri, "POST", body, headers=headers)
+        resp, content = self.h.request(training_uri, "POST", body, headers=headers)
         status = resp["status"]
         if 'status' != "200":
             raise HTTPError('HTTP status code: {s}'.format(s=status))
@@ -123,19 +128,49 @@ class Prediction():
         
         return modelinfo
 
-    def format_prediction_request(self):
-        pass
     
+    def predict(self, fmt, data):
+        """
+        Submit prediction
+        """
+        formats = ("text", "numeric", "mixture")
+        if fmt not in formats:
+            raise ValueError("format must be text, numeric, or mixture: {f}".format(f=fmt))
+        
+        # Format input:
+        #{"data":{"input" : {"text" : [ "myinput" ] }}}
+        #{"data":{"input" : {"numeric" : [ 1, 10, 0 ] }}}
+        #{"data":{"input" : {"mixture" : [ "text", 10, 0 ] }}}
+        jdata = json.dumps('"data":{"input" : {"{f}" : [ "{d}" ] }}}'.format(f=fmt,
+                                                                             d=data))
     
-    def predict(self):
-        pass
-    #PREDICT
-    # Format input as json
-    # Invoke query with POSTpp
-    # Parse json response
+        prediction_uri = "{t}?data={b}%2F{d}/predict".format(t=TRAINING_URI, 
+                                                             b=self.bucket, 
+                                                             d=self.data)
+        headers = {"Content-Type":"application/application/json", 
+                   "Authorization: GoogleLogin auth=auth-token"}
+        
+        resp, content = self.h.request(prediction_uri, "POST", urlencode(body),
+                                       headers=jdata)
+        
+        status = resp["status"]
+        
+        # Parse json response
+        # Categorical
+        #{"data":{
+        #"output":{"kind":"prediction#output",
+             #"outputLabel":"topLabel"
+             #"outputMulti":[{"label":"value", "score":x.xx}
+                            #{"label":"value", "score":x.xx}
+                            #...]}}
+        #Regression
+        #{"data":{"kind":"prediction#output", "outputValue":"x.xx"}}
+    
 
     def delete_model(self):
         """ Delete a previously trained mode. """
+        #-H "Authorization: GoogleLogin auth=auth-token"
+        #https://www.googleapis.com/prediction/v1.1/training/mybucket%2Fmydata        
         pass
     
 def main():
@@ -161,11 +196,17 @@ def main():
 
     p = Prediction(email, password, bucket, data)
 
-    try:
-        p.fetch_auth_token()
-    except (HTTPError, ValueError) as e:
-        sys.stderr.write("auth_token() :{ex}".format(ex=e))
-        return 1
+    retval = p.fetch_auth_token()
+    if retval["Status"] != "200":
+        if retval.has_key("Error"):
+            error = retval["Error"]
+            #TODO What are the other errors?
+            if Error == "CaptchaRequired":
+                #TODO Deal with captcha
+                #CaptchaToken=DQAAAGgA...dkI1LK9
+                #CaptchaUrl=Captcha?ctoken=HiteT4b0Bk5Xg18_AcVoP6-yFkHPibe7O9EqxeiI7lUSN
+                sys.stderr.write("captcha")
+                return 1
 
     try:
         p.invoke_training()
@@ -173,7 +214,7 @@ def main():
         sys.stderr.write("invoke_training returned: {ex}".format(ex=e))
         return 1
 
-    # TODO Maintain any type of state in a cookie?
+    #TODO Maintain any type of state in a cookie? auth, bucket, data
     training_complete = False
     while not training_complete:
         retval =  p.training_complete()
@@ -188,7 +229,7 @@ def main():
     else:
         print("Estimated accuracy: {a}".format(a=retval))
         
-    
+    #invoke predictions
 
 
 if __name__ == "__main__":
