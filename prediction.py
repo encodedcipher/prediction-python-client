@@ -13,10 +13,9 @@ except ImportError:
     sys.exit(1)
                      
     
-#sys.path.append(os.path.join(os.path.dirname(__file__), 'third_party'))
 CLIENT_LOGIN_URI = "https://www.google.com/accounts/ClientLogin"
 TRAINING_URI = "https://www.googleapis.com/prediction/v1.1/training"
-#QUERY_URI="https://www.googleapis.com/prediction/v1.1/query/"
+
 numerics = ('int', 'float', 'long', 'complex')
 
 class HTTPError(Exception):
@@ -26,26 +25,30 @@ class HTTPError(Exception):
         return repr(self.value)    
     
     
-class Prediction():
-    def __init__(self, email, password, bucket, data):
+class Auth():
+    def __init__(self, email, password):
         self.email = email
         self.password = password
-        self.bucket = bucket
-        self.data = data
-        self.auth = None
-        
+        self.token = None
+        self.http_status = None
+        self.captcha = {}
         self.h = httplib2.Http(".cache")
-
-    def fetch_auth_token(self):
+        
+        self._fetch_auth_token()
+        
+    def _fetch_auth_token(self):
         """ 
-        Request auth token
+        Request auth token and set class var.
+        
+        Error
+           403:    Poplulate self.captcha
         
         Return
             A dictonary with keys
             Status - HTTP status code (required)
             Error - 
             
-        If it fails, should it return a dict of data.
+        If it fails, should it return a dict of data?
         """
         retval = {"Status":""}
         headers = {"Content-Type":"application/x-www-form-urlencoded"}
@@ -55,38 +58,36 @@ class Prediction():
         resp, content = self.h.request(CLIENT_LOGIN_URI, "POST", urlencode(body),
                                        headers=headers)
         
-        status = resp["status"]
-        retval["HTTPStatus"] = status
+        self.http_status = resp["status"]
         #TODO
         # Raise an exception or return the verification data in a dict
-        if status != "200":
+        if self.http_status != "200":
             if status == "403":
-                error_text = content["Error"]
-                if error_text == "CaptchaRequired":
-                    captcha_token = content["CaptchaToken"]
-                    captcha_url = content["CaptchaUrl"]
-                    #HTTP/1.0 403 Access Forbidden
-                    #Server: GFE/1.3
-                    #Content-Type: text/plain
-	
-                    #Url=http://www.google.com/login/captcha
-                    
-                else:
-                    status_text = "{s}: {t}".format(s=status, t=text)
-            #raise HTTPError('HTTP status code: {s}'.format(s=status_text))
+                self.captcha["Error"] = content["Error"]
+                if self.captcha["Error"] == "CaptchaRequired":
+                    self.captcha["CaptchaToken"] = content["CaptchaToken"]
+                    self.captcha["CaptchaUrl"] = content["CaptchaUrl"]
+                
+            raise HTTPError('HTTP status code: {s}'.format(s=self.http_status))
         
         try:
             i = content.rindex('Auth')
         except ValueError:
-            #raise ValueError("Auth not found in content")
-            retval["Error"] = "Auth not found in content"
-            return retval
+            raise ValueError("Auth not found in content")
         
         authstring = content[i:].strip("\n")
         s_auth = authstring.split("=")
-        self.auth = s_auth[1]
+        self.token = s_auth[1]
         
-        return retval
+
+class Prediction():
+    def __init__(self, auth, bucket, data):
+        self.bucket = bucket
+        self.data = data
+        self.auth = None
+        
+        self.h = httplib2.Http(".cache")
+
 
     def invoke_training(self):
         """
@@ -199,39 +200,6 @@ class Prediction():
         pass
     
 def main():
-    # TODO
-    #verify bucket adn data - boto?
-    # make properties of some elements
-    usage = "%prog email password bucket data"
-    parser = OptionParser(usage)
-    parser.add_option("-D", "--debug", dest="debug", action="store_true",
-                      help="Write debug to stdout.")
-    
-    [options, args] = parser.parse_args()
-    if len(args) < 4:
-        parser.error('Incorrect number of arguments')
-        return -1
-    else:
-        email = args[0]
-        password = args[1]
-        bucket = args[2]
-        data = args[3]
-        
-    debug = True if options.debug else False
-
-    p = Prediction(email, password, bucket, data)
-
-    retval = p.fetch_auth_token()
-    if retval["Status"] != "200":
-        if retval.has_key("Error"):
-            error = retval["Error"]
-            #TODO What are the other errors?
-            if Error == "CaptchaRequired":
-                #TODO Deal with captcha
-                #CaptchaToken=DQAAAGgA...dkI1LK9
-                #CaptchaUrl=Captcha?ctoken=HiteT4b0Bk5Xg18_AcVoP6-yFkHPibe7O9EqxeiI7lUSN
-                sys.stderr.write("captcha")
-                return 1
 
     try:
         p.invoke_training()
