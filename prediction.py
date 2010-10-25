@@ -109,9 +109,8 @@ class Prediction():
 
 
     def training_complete(self):
-        """
+        """        
         Return: 
-            "HTTP status code:  n"
             "Training hasn't completed"
             "estimated accuracy: 0.xx"
         """
