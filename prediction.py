@@ -62,7 +62,7 @@ class Auth():
         #TODO
         # Raise an exception or return the verification data in a dict
         if self.http_status != "200":
-            if status == "403":
+            if self.http_status == "403":
                 self.captcha["Error"] = content["Error"]
                 if self.captcha["Error"] == "CaptchaRequired":
                     self.captcha["CaptchaToken"] = content["CaptchaToken"]
@@ -155,7 +155,7 @@ class Prediction():
                                                              d=self.data)
         headers = {"Content-Type":"application/application/json", 
                    "Authorization": "GoogleLogin auth=auth-token"}
-        
+        body = {}
         resp, content = self.h.request(prediction_uri, "POST", urlencode(body),
                                        headers=jdata)
         
@@ -193,41 +193,3 @@ class Prediction():
         return output
             
 
-    def delete_model(self):
-        """ Delete a previously trained mode. """
-        #-H "Authorization: GoogleLogin auth=auth-token"
-        #https://www.googleapis.com/prediction/v1.1/training/mybucket%2Fmydata        
-        pass
-    
-def main():
-
-    try:
-        p.invoke_training()
-    except HTTPError as e:
-        sys.stderr.write("invoke_training returned: {ex}".format(ex=e))
-        return 1
-
-    #TODO Maintain any type of state in a cookie? auth, bucket, data
-    training_complete = False
-    while not training_complete:
-        retval =  p.training_complete()
-        if ":" not in retval:
-            training_complete = False
-        if debug: print("Still training")
-        time.sleep(30.0)
-    
-    if "HTTP" in retval:
-        print("training_complete() returned HTTP status code: {c}".format(c=retval))
-        return 1
-    else:
-        print("Estimated accuracy: {a}".format(a=retval))
-        
-    #invoke predictions
-    try:
-        retval = p.predict()
-    except ValueError as e:
-        sys.stderr.write("predict returned: {ex}".format(ex=e))
-
-
-if __name__ == "__main__":
-    sys.exit(main())
