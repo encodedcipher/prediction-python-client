@@ -17,6 +17,7 @@ except ImportError:
 CLIENT_LOGIN_URI = "https://www.google.com/accounts/ClientLogin"
 TRAINING_URI = "https://www.googleapis.com/prediction/v1.1/training"
 #QUERY_URI="https://www.googleapis.com/prediction/v1.1/query/"
+numerics = ('int', 'float', 'long', 'complex')
 
 class HTTPError(Exception):
     def __init__(self, value):
@@ -136,11 +137,15 @@ class Prediction():
         formats = ("text", "numeric", "mixture")
         if fmt not in formats:
             raise ValueError("format must be text, numeric, or mixture: {f}".format(f=fmt))
-        
-        # Format input:
+
         #{"data":{"input" : {"text" : [ "myinput" ] }}}
         #{"data":{"input" : {"numeric" : [ 1, 10, 0 ] }}}
         #{"data":{"input" : {"mixture" : [ "text", 10, 0 ] }}}
+        if fmt == 'text' and not isinstance(data, str):
+            raise ValueError("text input must be of type string.")
+        elif fmt == 'numeric' and type(data) not in numerics:
+            raise ValueError('numeric input must be of type {n}'.format(n=numerics))
+
         jdata = json.dumps('"data":{"input" : {"{f}" : [ "{d}" ] }}}'.format(f=fmt,
                                                                              d=data))
     
@@ -148,24 +153,44 @@ class Prediction():
                                                              b=self.bucket, 
                                                              d=self.data)
         headers = {"Content-Type":"application/application/json", 
-                   "Authorization: GoogleLogin auth=auth-token"}
+                   "Authorization": "GoogleLogin auth=auth-token"}
         
         resp, content = self.h.request(prediction_uri, "POST", urlencode(body),
                                        headers=jdata)
         
         status = resp["status"]
+        if 'status' != "200":
+            raise HTTPError('HTTP status code: {s}'.format(s=status))
         
-        # Parse json response
+        #TODO Is it content or an element within content?
+        return self._parse_prediction_json(content)
+        
+    
+    def _parse_prediction_json(self, json):
+        """
+        Return a dictionary of just the pertinent data.
+        #TODO Generic parsing of json - see Buzz
         # Categorical
-        #{"data":{
-        #"output":{"kind":"prediction#output",
-             #"outputLabel":"topLabel"
-             #"outputMulti":[{"label":"value", "score":x.xx}
-                            #{"label":"value", "score":x.xx}
-                            #...]}}
+        #{"data":{"output":{"kind":"prediction#output",
+                 #"outputLabel":"topLabel"
+                 #"outputMulti":[{"label":"value", "score":x.xx}
+                                 #{"label":"value", "score":x.xx}
+                                 #...]}}
         #Regression
         #{"data":{"kind":"prediction#output", "outputValue":"x.xx"}}
-    
+        """
+        if not isinstance(json, dict):
+            raise TypeError(
+                'Expected dict as arg but received %s: %s' % type(json), 
+                json)
+        
+        if json.get('data').get('output'):
+            output = json['data']['output']
+        elif json.get('data').get('kind'):
+            output = json['data']
+            
+        return output
+            
 
     def delete_model(self):
         """ Delete a previously trained mode. """
@@ -230,6 +255,10 @@ def main():
         print("Estimated accuracy: {a}".format(a=retval))
         
     #invoke predictions
+    try:
+        retval = p.predict()
+    except ValueError as e:
+        sys.stderr.write("predict returned: {ex}".format(ex=e))
 
 
 if __name__ == "__main__":
