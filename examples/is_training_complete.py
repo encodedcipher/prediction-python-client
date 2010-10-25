@@ -7,12 +7,12 @@ import time
 
 try:
     sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-    from prediction import Prediction
+    from prediction import Prediction, HTTPError
 except ImportError:
     print 'Error importing Prediction library!!'
 
 def main():
-    usage = "%prog [-is] auth bucket data"
+    usage = "%prog [-is] auth_token bucket data"
     parser = OptionParser(usage)
     parser.add_option("-D", "--debug", dest="debug", action="store_true",
                       help="Write debug to stdout.")
@@ -26,7 +26,7 @@ def main():
         parser.error('Incorrect number of arguments')
         return -1
     else:
-        auth = args[0]
+        auth_token = args[0]
         bucket = args[1]
         data = args[2]
         
@@ -36,7 +36,7 @@ def main():
     else:
         iterations = 6
     #TODO not required if an auth
-    p = Prediction(email, password, bucket, data)
+    p = Prediction(auth_token, bucket, data)
 
     training_complete = False
     iteration = 1
@@ -44,7 +44,7 @@ def main():
     while not training_complete and iteration <= iterations:
         try:
             retval =  p.training_complete()
-        except prediction.HTTPError as e:
+        except HTTPError as e:
             sys.stderr.write(e)
             return 1
         
