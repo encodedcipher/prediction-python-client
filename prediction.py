@@ -192,3 +192,15 @@ class Prediction():
         return output
             
 
+    def delete_model(self):
+        """ Delete a model. """
+        prediction_uri = "{t}?data={b}%2F{d}/predict".format(t=TRAINING_URI, 
+                                                             b=self.bucket, 
+                                                             d=self.data)        
+        headers = {"Authorization": "GoogleLogin auth=auth-token"}
+        body = {}
+        resp, content = self.h.request(prediction_uri, "DELETE", urlencode(body),
+                                       headers=headers)
+        status = resp["status"]
+        if 'status' != "200":
+            raise HTTPError('HTTP status code: {s}'.format(s=status))
