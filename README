@@ -1,0 +1,17 @@
+Google Prediction API Python Client
+
+Author:  'hancock.robert@gmail.com (Bob Hancock)'
+
+prediction.py
+    This abstracts the REST calls to the API
+    
+examples
+    fetch_auth.py
+        Fetch the authorization token using your Google account.
+        
+    train_model.py
+        Using your authorization token, train the model using 
+        your bucket and data in Google Storage.  It validates
+        the token and the verifies the existence of the resources
+        in Google Storage.
+        
