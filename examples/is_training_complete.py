@@ -4,27 +4,31 @@ import getopt
 from optparse import OptionParser
 import time
 
-
 try:
     sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
     from prediction import Prediction, HTTPError
 except ImportError:
-    print 'Error importing Prediction library!!'
+    print 'Error importing Prediction library!'
 
 def main():
-    usage = "%prog [-is] auth_token bucket data"
+    default_iterations = 6
+    default_seconds = 30
+    
+    usage = "%prog [-Dis] auth_token bucket data"
     parser = OptionParser(usage)
     parser.add_option("-D", "--debug", dest="debug", action="store_true",
                       help="Write debug to stdout.")
     parser.add_option("-i", "--iterations", dest="iterations", action="store",
-                      help="Number of iterations to check if training is complete.")
+                      help="Number of iterations to check if training is complete.  "
+                      + "Defalut is {i}.".format(i=default_iterations))
     parser.add_option("-s", "--secs", dest="seconds", action="store",
-                      help="Seconds to sleep between iterations")
+                      help="Seconds to sleep between iterations.  "
+                      +"Default is {s}".format(s=default_seconds))
     
     [options, args] = parser.parse_args()
-    if len(args) < 4:
+    if len(args) < 3:
         parser.error('Incorrect number of arguments')
-        return -1
+        return 1
     else:
         auth_token = args[0]
         bucket = args[1]
@@ -32,9 +36,24 @@ def main():
         
     debug = True if options.debug else False
     if options.iterations:
-        iterations = int(options.iterations)
+        try:
+            iterations = int(options.iterations)
+        except ValueError:
+            sys.stderr.write("Cannot convert iteration argument {i} to int\n".format(i=options.iterations))
+            return 1
     else:
         iterations = 6
+        
+    if options.seconds:
+        try:
+            seconds = float(options.seconds)
+        except ValueError:
+            sys.stderr.write("Cannot convert seconds argument {i} to float\n".format(i=options.seconds))
+            return 1
+    else:
+        seconds = 30.0
+  
+            
     #TODO not required if an auth
     p = Prediction(auth_token, bucket, data)
 
