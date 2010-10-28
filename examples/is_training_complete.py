@@ -12,7 +12,7 @@ except ImportError:
 
 def main():
     default_iterations = 6
-    default_seconds = 30
+    default_seconds = 30.0
     
     usage = "%prog [-Dis] auth_token bucket data"
     parser = OptionParser(usage)
@@ -43,6 +43,7 @@ def main():
             return 1
     else:
         iterations = 6
+    if debug: print("iterations={i}.".format(i=iterations))
         
     if options.seconds:
         try:
@@ -51,32 +52,33 @@ def main():
             sys.stderr.write("Cannot convert seconds argument {i} to float\n".format(i=options.seconds))
             return 1
     else:
-        seconds = 30.0
+        seconds = default_seconds
+    if debug: print("seconds={s}".format(s=seconds))
   
-            
-    #TODO not required if an auth
     p = Prediction(auth_token, bucket, data)
 
     training_complete = False
     iteration = 1
     retval = None
     while not training_complete and iteration <= iterations:
+        if debug: print("Iteration {i} of {x}".format(i=iteration,
+                                                      x=iterations))        
         try:
-            retval =  p.training_complete()
+            retval = p.training_complete()
         except HTTPError as e:
             sys.stderr.write(e)
             return 1
         
         if ":" in retval:
             training_complete = True
-        if debug: print("Still training, Iteration {i} of {x}".format(i=iteration,
-                                                                      x=iterations))
-        if options.seconds:
-            time.sleep(float(options.seconds))
-        else:
-            time.sleep(30.0)
+            break
+        
+        if debug: print("Still training.  Sleeping {s} seconds.".format(s=seconds))
+        time.sleep(seconds)
         iteration += 1
     
+    #TODO Can retval actually be None?  Won't the http call always return a value?
+    # How to print the retval not just the accuracy
     if not retval:
         return 0
     elif "hasn't completed" in retval:
