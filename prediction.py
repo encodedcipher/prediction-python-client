@@ -41,7 +41,7 @@ class Auth():
         Request auth token and set class var.
         
         Error
-           403:    Poplulate self.captcha
+           403:    Deal with self.captcha
         
         Return
             A dictonary with keys
@@ -204,3 +204,5 @@ class Prediction():
         status = resp["status"]
         if 'status' != "200":
             raise HTTPError('HTTP status code: {s}'.format(s=status))
+        
+        
