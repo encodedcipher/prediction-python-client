@@ -6,13 +6,19 @@ import json
 import getopt
 from optparse import OptionParser
 import time
+
+try:
+    import boto
+except ImportError:
+    sys.stderr.write("Please install the boto library.")
+    sys.exit(1)
+                     
 try:
     import httplib2
 except ImportError:
     sys.stderr.write("Please install httplib2.\n")
     sys.exit(1)
                      
-STORAGE_URI = "commondatastorage.googleapis.com" 
 CLIENT_LOGIN_URI = "https://www.google.com/accounts/ClientLogin"
 TRAINING_URI = "https://www.googleapis.com/prediction/v1.1/training"
 
@@ -30,18 +36,24 @@ class Storage():
         self.h = httplib2.Http(".cache")
 
     def fetch_buckets(self):
-        headers = {"Host":STORAGE_URI, 
-                   "Date": self._utc(),
-                   "Authorization":self.auth_token,
-                   "Content-Length":"0"}
-
-        resp, content = self.h.request(STORAGE_URI, "GET", headers=headers)
-        status = resp["status"]
-        if 'status' != "200":
-            raise HTTPError('HTTP status code: {s}'.format(s=status))        
-    def _utc(self):
-        return time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime())
+        """
+        N.B. The boto library requires your auth token to be in the .boto 
+        configuration file.
+        Example:
+            [Credentials]
+            authorization = DQAAAK8AAACdOpX9GMAPb7MIPIb
         
+        Return:
+            A list of all bucket names. """
+        config = boto.config
+        uri = boto.storage_uri("", "gs")
+        try:
+            buckets = uri.get_all_buckets()
+        except Exception as e:
+            raise e
+        
+        buckets =  [b.name for b in buckets]
+        return buckets
         
 #GET / HTTP/1.1
 #Host: commondatastorage.googleapis.com
