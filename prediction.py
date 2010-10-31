@@ -12,7 +12,7 @@ except ImportError:
     sys.stderr.write("Please install httplib2.\n")
     sys.exit(1)
                      
-    
+STORAGE_URI = "commondatastorage.googleapis.com" 
 CLIENT_LOGIN_URI = "https://www.google.com/accounts/ClientLogin"
 TRAINING_URI = "https://www.googleapis.com/prediction/v1.1/training"
 
@@ -24,8 +24,33 @@ class HTTPError(Exception):
     def __str__(self):
         return repr(self.value)    
     
-    
+class Storage():
+    def __init__(self, auth_token):
+        self.auth_token = auth_token
+        self.h = httplib2.Http(".cache")
+
+    def fetch_buckets(self):
+        headers = {"Host":STORAGE_URI, 
+                   "Date": self._utc(),
+                   "Authorization":self.auth_token,
+                   "Content-Length":"0"}
+
+        resp, content = self.h.request(STORAGE_URI, "GET", headers=headers)
+        status = resp["status"]
+        if 'status' != "200":
+            raise HTTPError('HTTP status code: {s}'.format(s=status))        
+    def _utc(self):
+        return time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime())
+        
+        
+#GET / HTTP/1.1
+#Host: commondatastorage.googleapis.com
+#Date: Wed, 16 Jun 2010 11:11:11 GMT
+#Authorization: authentication string
+#Content-Length: request body length        
+        
 class Auth():
+    """ Google account authorization. """
     def __init__(self, email, password):
         self.email = email
         self.password = password
@@ -81,6 +106,7 @@ class Auth():
         
 
 class Prediction():
+    """ Fuctions for training, status, predictionm and deletion. """
     def __init__(self, auth, bucket, data):
         self.bucket = bucket
         self.data = data
@@ -91,8 +117,6 @@ class Prediction():
 
     def invoke_training(self):
         """
-        Invoke training. 
-        
         Return
            http status code
         """
