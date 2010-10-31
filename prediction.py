@@ -29,6 +29,12 @@ class HTTPError(Exception):
         self.value = value
     def __str__(self):
         return repr(self.value)    
+
+class StorageError(Exception):
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        return repr(self.value)    
     
 class Storage():
     def __init__(self, auth_token):
@@ -55,11 +61,6 @@ class Storage():
         buckets =  [b.name for b in buckets]
         return buckets
         
-#GET / HTTP/1.1
-#Host: commondatastorage.googleapis.com
-#Date: Wed, 16 Jun 2010 11:11:11 GMT
-#Authorization: authentication string
-#Content-Length: request body length        
         
 class Auth():
     """ Google account authorization. """
@@ -122,11 +123,26 @@ class Prediction():
     def __init__(self, auth, bucket, data):
         self.bucket = bucket
         self.data = data
-        self.auth = None
-        
+        self.auth = auth
         self.h = httplib2.Http(".cache")
 
+        try:
+            if not self._bucket_exists():
+                raise StorageError("Cannot find {b} in Google Storage.".format(b=self.bucket))
+        except Exception as e:
+            raise e
+            
 
+    def _bucket_exists(self):
+        s = Storage(self.auth)
+        try:
+            buckets =  s.fetch_buckets()
+        except Exception as e:
+            raise e
+        
+        return self.bucket in buckets
+    
+        
     def invoke_training(self):
         """
         Return
