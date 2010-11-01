@@ -5,6 +5,7 @@ from urllib import urlencode
 import json
 import getopt
 from optparse import OptionParser
+import ConfigParser
 import time
 
 try:
@@ -36,44 +37,50 @@ class StorageError(Exception):
     def __str__(self):
         return repr(self.value)    
     
-class Storage():
-    def __init__(self, auth_token):
-        self.auth_token = auth_token
-        self.h = httplib2.Http(".cache")
 
-    def fetch_buckets(self):
-        """
-        N.B. The boto library requires your auth token to be in the .boto 
-        configuration file.
-        Example:
-            [Credentials]
-            authorization = DQAAAK8AAACdOpX9GMAPb7MIPIb
-        
-        Return:
-            A list of all bucket names. """
-        config = boto.config
-        uri = boto.storage_uri("", "gs")
-        try:
-            buckets = uri.get_all_buckets()
-        except Exception as e:
-            raise e
-        
-        buckets =  [b.name for b in buckets]
-        return buckets
-        
-        
 class Auth():
     """ Google account authorization. """
-    def __init__(self, email, password):
+    def __init__(self, email, password, boto_config=None):
+        """
+        Args:
+           email:     Your Google email address.  e.g., kevin_dykstra@gmail.com
+           password:  Your Google account password.
+           boto:      Name of the .boto file
+        """
         self.email = email
         self.password = password
+        self.boto_config = boto_config
         self.token = None
         self.http_status = None
         self.captcha = {}
         self.h = httplib2.Http(".cache")
         
         self._fetch_auth_token()
+        if self.boto_config:
+            self._write_boto_auth()
+                
+    def _write_boto_auth(self):
+        """ If boto file exists, write the authorization
+        token string to the Credentials section.
+        """
+        section = "Credentials"
+        option = 'authorization'
         
+        if not os.path.isfile(self.boto_config):
+            raise OSError('Cannot find boto config file {f}'.format(f=self.boto_config))
+        config = ConfigParser.RawConfigParser()
+        config.readfp(open(self.boto_config))
+        if config.has_option(section, option):
+            auth = config.get(section, option)
+        else:
+            auth = None
+        if auth == self.token:
+            return
+        
+        config.set(section, option, self.token)
+        with open(self.boto_config, 'w') as fh:
+            config.write(fh)
+            
     def _fetch_auth_token(self):
         """ 
         Request auth token and set class var.
@@ -116,7 +123,33 @@ class Auth():
         authstring = content[i:].strip("\n")
         s_auth = authstring.split("=")
         self.token = s_auth[1]
+
         
+class Storage():
+    def __init__(self, auth_token):
+        self.auth_token = auth_token
+        self.h = httplib2.Http(".cache")
+
+    def fetch_buckets(self):
+        """
+        N.B. The boto library requires your auth token to be in the .boto 
+        configuration file.
+        Example:
+            [Credentials]
+            authorization = DQAAAK8AAACdOpX9GMAPb7MIPIb
+        
+        Return:
+            A list of all bucket names. """
+        config = boto.config
+        uri = boto.storage_uri("", "gs")
+        try:
+            buckets = uri.get_all_buckets()
+        except Exception as e:
+            raise e
+        
+        buckets =  [b.name for b in buckets]
+        return buckets
+                
 
 class Prediction():
     """ Fuctions for training, status, predictionm and deletion. """
