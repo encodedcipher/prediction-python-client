@@ -9,7 +9,8 @@ import prediction as p
 good_email = "hancock.robert@gmail.com"
 good_password = "w1ls0n1136"
 boto_config = "../.boto"
-good_bucket = ""
+good_bucket = "utest"
+good_object = "small"
 
 class TestAuth(unittest.TestCase):
     def setUp(self):
@@ -31,7 +32,7 @@ class TestAuth(unittest.TestCase):
         try:
             a = p.Auth(good_email, good_password, botoconfig="badfile")
         except Exception as e:
-            self.assertEqual(type(e), OSError)
+            self.assertEqual(type(e), NameError)
  
 class TestStorage(unittest.TestCase):
     def setUp(self):
@@ -63,8 +64,11 @@ class TestPrediction(unittest.TestCase):
         self.data_bad = "baddata"
         
     #auth bucket data
-    def test_auth_bad(self):
-        p = p.Prediction(self.auth.token,
+    def test_auth_bad_bucket(self):
+        try:
+            p = p.Prediction(self.auth.token, self.bucket_bad, good_object)
+        except Exception as e:
+            self.assertEqual(type(e), p.StorageError)
                          
 if __name__ == "__main__":
     unittest.main()
