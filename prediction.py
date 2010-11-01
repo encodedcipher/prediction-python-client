@@ -42,7 +42,7 @@ class StorageError(Exception):
 
 class Auth():
     """ Google account authorization. """
-    def __init__(self, email, password, boto_config=""):
+    def __init__(self, email, password, botoconfig=""):
         """
         Args:
            email:            A valid Google email address.  e.g., kevin_dykstra@gmail.com

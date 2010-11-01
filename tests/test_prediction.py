@@ -1,3 +1,4 @@
+""" Unit tests for Prediction Python Client """
 import unittest
 import sys
 import os
@@ -7,6 +8,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 import prediction as p
 good_email = "hancock.robert@gmail.com"
 good_password = "w1ls0n1136"
+boto_config = "../.boto"
+good_bucket = ""
 
 class TestAuth(unittest.TestCase):
     def setUp(self):
@@ -26,7 +29,7 @@ class TestAuth(unittest.TestCase):
             
     def test_bad_boto(self):
         try:
-            a = p.Auth(good_email, good_password, boto_config="badfile")
+            a = p.Auth(good_email, good_password, botoconfig="badfile")
         except Exception as e:
             self.assertEqual(type(e), OSError)
  
@@ -52,5 +55,16 @@ class TestStorage(unittest.TestCase):
     def test_fetch_objects_bad(self):
         self.assertRaises(Exception, self.s.fetch_ojbects, ('bad_bucket'))
         
+class TestPrediction(unittest.TestCase):
+    def setUp(self):
+        self.auth = p.Auth(good_email, good_password, boto_config)
+        self.auth_bad = 'badauth'
+        self.bucket_bad = "badbucket"
+        self.data_bad = "baddata"
+        
+    #auth bucket data
+    def test_auth_bad(self):
+        p = p.Prediction(self.auth.token,
+                         
 if __name__ == "__main__":
     unittest.main()
