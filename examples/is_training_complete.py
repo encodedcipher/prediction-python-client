@@ -66,10 +66,10 @@ def main():
         try:
             retval = p.training_complete()
         except HTTPError as e:
-            sys.stderr.write(e)
+            sys.stderr.write(str(e))
             return 1
         
-        if ":" in retval:
+        if retval > -1:
             training_complete = True
             break
         
@@ -77,14 +77,11 @@ def main():
         time.sleep(seconds)
         iteration += 1
     
-    #TODO Can retval actually be None?  Won't the http call always return a value?
-    # How to print the retval not just the accuracy
-    if not retval:
-        return 0
-    elif "hasn't completed" in retval:
-        print("Training hasn't completed")
-    else:
+    if training_complete:
         print("Estimated accuracy: {a}".format(a=retval))
+    else:
+        print("Training hasn't completed.  retval={r}".format(r=retval))
+        
         
 if __name__ == "__main__":
     sys.exit(main())        
