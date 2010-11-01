@@ -21,6 +21,7 @@ else:
     password = args[1]
         
 try:
+    #auth = Auth(email, password)
     auth = Auth(email, password, boto_config="/usr/local/src/prediction-python-client/.boto")
             
     print('Auth token: {t}'.format(t=auth.token))

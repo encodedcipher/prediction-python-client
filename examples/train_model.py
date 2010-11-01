@@ -11,8 +11,6 @@ except ImportError:
     print 'Error importing Prediction library!!'
 
 def main():
-    # TODO
-    #verify bucket and data - boto?
     # make properties of some elements
     usage = "%prog auth_token bucket data"
     parser = OptionParser(usage)
@@ -30,7 +28,11 @@ def main():
         
     debug = True if options.debug else False
 
-    p = Prediction(auth_token, bucket, data)
+    try:
+        p = Prediction(auth_token, bucket, data)
+    except Exception as e:
+        sys.stderr.write("Prediction() raised: {ex}".format(ex=e))
+        return 1
 
     try:
         p.invoke_training()

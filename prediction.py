@@ -20,9 +20,11 @@ except ImportError:
     sys.stderr.write("Please install httplib2.\n")
     sys.exit(1)
                      
+__author__ = ('hancock.robert@gmail.com (Robert Hancock)')
+__version__ = "0.1g"
+    
 CLIENT_LOGIN_URI = "https://www.google.com/accounts/ClientLogin"
 TRAINING_URI = "https://www.googleapis.com/prediction/v1.1/training"
-
 numerics = ('int', 'float', 'long', 'complex')
 
 class HTTPError(Exception):
@@ -43,9 +45,9 @@ class Auth():
     def __init__(self, email, password, boto_config=None):
         """
         Args:
-           email:     Your Google email address.  e.g., kevin_dykstra@gmail.com
-           password:  Your Google account password.
-           boto:      Name of the .boto file
+           email:            A valid Google email address.  e.g., kevin_dykstra@gmail.com
+           password:         The Google account password.
+           boto_config:      Name of the .boto file
         """
         self.email = email
         self.password = password
@@ -60,8 +62,9 @@ class Auth():
             self._write_boto_auth()
                 
     def _write_boto_auth(self):
-        """ If boto file exists, write the authorization
-        token string to the Credentials section.
+        """ If the boto config file exists, write the authorization
+        token string to the Credentials section if this token is
+        different from the one stored.
         """
         section = "Credentials"
         option = 'authorization'
@@ -147,8 +150,14 @@ class Storage():
         except Exception as e:
             raise e
         
-        buckets =  [b.name for b in buckets]
-        return buckets
+        return [b.name for b in buckets]
+    
+    def fetch_ojbects(self, bucket):
+        uri = boto.storage_uri(bucket, "gs")
+
+        #"List your objects."
+        objects = uri.get_bucket()
+        return [obj.name for obj in objects]
                 
 
 class Prediction():
@@ -161,6 +170,7 @@ class Prediction():
         self.data = data
         self.auth = auth
         self.h = httplib2.Http(".cache")
+        self.storage = Storage(self.auth)
 
         if not self._bucket_exists():
             raise StorageError("Cannot find {b} in Google Storage.".format(b=self.bucket))
@@ -170,26 +180,16 @@ class Prediction():
                                                                            b=self.bucket))
 
     def _bucket_exists(self):
-        s = Storage(self.auth)
-        try:
-            buckets =  s.fetch_buckets()
-        except Exception as e:
-            raise e
-        
+        buckets =  self.storage.fetch_buckets()
         return self.bucket in buckets
     
     def _data_exists(self):
-        uri = boto.storage_uri(self.bucket, "gs")
-
-        #"List your objects."
-        objects = uri.get_bucket()
-        names = [obj.name for obj in objects]
-        return self.data in names
-    
+        objects = self.storage.fetch_ojbects()
+        return self.data in objects
+            
     def invoke_training(self):
         """
-        Return
-           http status code
+        Start training from data in bucket/data.
         """
         headers = {"Content-Type":"application/json", 
                    "Authorization":"GoogleLogin auth={a}".format(a=self.auth)}
@@ -199,12 +199,12 @@ class Prediction():
         
         resp, content = self.h.request(training_uri, "POST", body, headers=headers)
         status = resp["status"]
-        if 'status' != "200":
+        if status != "200":
             raise HTTPError('HTTP status code: {s}'.format(s=status))
 
-
     def training_complete(self):
-        """        
+        """   
+        TODO: Return -1.0 if not complete, else accuracy
         Return: 
             "Training hasn't completed"
             "estimated accuracy: 0.xx"
@@ -299,5 +299,4 @@ class Prediction():
         status = resp["status"]
         if 'status' != "200":
             raise HTTPError('HTTP status code: {s}'.format(s=status))
-        
         
