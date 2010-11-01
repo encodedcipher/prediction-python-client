@@ -42,7 +42,7 @@ class StorageError(Exception):
 
 class Auth():
     """ Google account authorization. """
-    def __init__(self, email, password, boto_config=None):
+    def __init__(self, email, password, boto_config=""):
         """
         Args:
            email:            A valid Google email address.  e.g., kevin_dykstra@gmail.com
@@ -110,11 +110,12 @@ class Auth():
         #TODO
         # Raise an exception or return the verification data in a dict
         if self.http_status != "200":
-            if self.http_status == "403":
-                self.captcha["Error"] = content["Error"]
-                if self.captcha["Error"] == "CaptchaRequired":
-                    self.captcha["CaptchaToken"] = content["CaptchaToken"]
-                    self.captcha["CaptchaUrl"] = content["CaptchaUrl"]
+            #if self.http_status == "403":
+                # Bad Authentication
+                #self.captcha["Error"] = content["Error"]
+                #if self.captcha["Error"] == "CaptchaRequired":
+                    #self.captcha["CaptchaToken"] = content["CaptchaToken"]
+                    #self.captcha["CaptchaUrl"] = content["CaptchaUrl"]
                 
             raise HTTPError('HTTP status code: {s}'.format(s=self.http_status))
         
@@ -145,10 +146,7 @@ class Storage():
             A list of all bucket names. """
         config = boto.config
         uri = boto.storage_uri("", "gs")
-        try:
-            buckets = uri.get_all_buckets()
-        except Exception as e:
-            raise e
+        buckets = uri.get_all_buckets()
         
         return [b.name for b in buckets]
     
