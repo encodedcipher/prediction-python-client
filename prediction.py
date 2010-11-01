@@ -25,7 +25,7 @@ __version__ = "0.1g"
     
 CLIENT_LOGIN_URI = "https://www.google.com/accounts/ClientLogin"
 TRAINING_URI = "https://www.googleapis.com/prediction/v1.1/training"
-numerics = ('int', 'float', 'long', 'complex')
+NUMERICS = (int, float, long, complex)
 
 class HTTPError(Exception):
     def __init__(self, value):
@@ -38,7 +38,12 @@ class StorageError(Exception):
         self.value = value
     def __str__(self):
         return repr(self.value)    
-    
+
+class TrainingError(Exception):
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        return repr(self.value)     
 
 class Auth():
     """ Google account authorization. """
@@ -56,6 +61,10 @@ class Auth():
         self.http_status = None
         self.captcha = {}
         self.h = httplib2.Http(".cache")
+        
+        if self.boto_config:
+            if not os.path.isfile(self.boto_config):
+                raise OSError("Cannot find {b}".format(b=self.boto_config))
         
         self._fetch_auth_token()
         if self.boto_config:
@@ -175,14 +184,14 @@ class Prediction():
             
         if not self._data_exists():
             raise StorageError("Cannot find {d} in bucket {b}.".format(d=self.data,
-                                                                           b=self.bucket))
+                                                                       b=self.bucket))
 
     def _bucket_exists(self):
         buckets =  self.storage.fetch_buckets()
         return self.bucket in buckets
     
     def _data_exists(self):
-        objects = self.storage.fetch_ojbects()
+        objects = self.storage.fetch_ojbects(self.bucket)
         return self.data in objects
             
     def invoke_training(self):
@@ -202,10 +211,9 @@ class Prediction():
 
     def training_complete(self):
         """   
-        TODO: Return -1.0 if not complete, else accuracy
         Return: 
-            "Training hasn't completed"
-            "estimated accuracy: 0.xx"
+            -1.0:    Training hasn't completed
+            0.xxx     estimated accuracy: 0.xx
         """
         is_complete_uri="{tui}/{b}%2F{d}".format(tui=TRAINING_URI,
                                                  b=self.bucket,
@@ -219,25 +227,34 @@ class Prediction():
 
         j = json.loads(content)
         modelinfo = j['data']['modelinfo']
-        
-        return modelinfo
 
-    
+        if "estimated" in modelinfo:
+            buf = modelinfo.split(":")
+            if len(buf) > 1:
+                return float(buf[1])
+            else:
+                raise TrainingError("modelinfo format error: {m}".format(m=modelinfo))
+            
+        if "hasn't" in modelinfo:
+            return -1.0
+        else:
+            raise TrainingError('modelinfo={m}'.format(m=modelinfo))
+               
     def predict(self, fmt, data):
         """
         Submit prediction
         """
         formats = ("text", "numeric", "mixture")
         if fmt not in formats:
-            raise ValueError("format must be text, numeric, or mixture: {f}".format(f=fmt))
+            raise ValueError("Format must be text, numeric, or mixture.  You passed: '{f}'".format(f=fmt))
 
         #{"data":{"input" : {"text" : [ "myinput" ] }}}
         #{"data":{"input" : {"numeric" : [ 1, 10, 0 ] }}}
         #{"data":{"input" : {"mixture" : [ "text", 10, 0 ] }}}
         if fmt == 'text' and not isinstance(data, str):
-            raise ValueError("text input must be of type string.")
-        elif fmt == 'numeric' and type(data) not in numerics:
-            raise ValueError('numeric input must be of type {n}'.format(n=numerics))
+            raise ValueError("You specifided the format as 'text' but data is {t}.".format(t=type(data)))
+        elif fmt == 'numeric' and not isinstance(data, NUMERICS):
+            raise ValueError('numeric input must be of type {n}'.format(n=NUMERICS))
 
         jdata = json.dumps('"data":{"input" : {"{f}" : [ "{d}" ] }}}'.format(f=fmt,
                                                                              d=data))
