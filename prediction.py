@@ -152,19 +152,22 @@ class Storage():
                 
 
 class Prediction():
-    """ Fuctions for training, status, predictionm and deletion. """
+    """ Fuctions for training, status, predictionm and deletion.
+
+    N.B.   You need have defined the bucket and data prior to this.
+    """
     def __init__(self, auth, bucket, data):
         self.bucket = bucket
         self.data = data
         self.auth = auth
         self.h = httplib2.Http(".cache")
 
-        try:
-            if not self._bucket_exists():
-                raise StorageError("Cannot find {b} in Google Storage.".format(b=self.bucket))
-        except Exception as e:
-            raise e
+        if not self._bucket_exists():
+            raise StorageError("Cannot find {b} in Google Storage.".format(b=self.bucket))
             
+        if not self._data_exists():
+            raise StorageError("Cannot find {d} in bucket {b}.".format(d=self.data,
+                                                                           b=self.bucket))
 
     def _bucket_exists(self):
         s = Storage(self.auth)
@@ -175,7 +178,14 @@ class Prediction():
         
         return self.bucket in buckets
     
-        
+    def _data_exists(self):
+        uri = boto.storage_uri(self.bucket, "gs")
+
+        #"List your objects."
+        objects = uri.get_bucket()
+        names = [obj.name for obj in objects]
+        return self.data in names
+    
     def invoke_training(self):
         """
         Return
