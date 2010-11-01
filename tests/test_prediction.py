@@ -58,6 +58,7 @@ class TestStorage(unittest.TestCase):
         
 class TestPrediction(unittest.TestCase):
     def setUp(self):
+        global boto_config
         self.auth = p.Auth(good_email, good_password, boto_config)
         self.auth_bad = 'badauth'
         self.bucket_bad = "badbucket"

@@ -51,7 +51,7 @@ class Auth():
         """
         self.email = email
         self.password = password
-        self.boto_config = boto_config
+        self.boto_config = botoconfig
         self.token = None
         self.http_status = None
         self.captcha = {}
