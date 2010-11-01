@@ -222,7 +222,7 @@ class Prediction():
         resp, content = self.h.request(is_complete_uri, "GET", headers=headers)
 
         status = resp['status'] 
-        if status != 200:
+        if status != '200' and status != '304':
             raise HTTPError("HTTP status code: {s}".format(s=status))
 
         j = json.loads(content)
@@ -240,7 +240,7 @@ class Prediction():
         else:
             raise TrainingError('modelinfo={m}'.format(m=modelinfo))
                
-    def predict(self, fmt, data):
+    def predict(self, fmt, pdata):
         """
         Submit prediction
         """
@@ -251,29 +251,30 @@ class Prediction():
         #{"data":{"input" : {"text" : [ "myinput" ] }}}
         #{"data":{"input" : {"numeric" : [ 1, 10, 0 ] }}}
         #{"data":{"input" : {"mixture" : [ "text", 10, 0 ] }}}
-        if fmt == 'text' and not isinstance(data, str):
-            raise ValueError("You specifided the format as 'text' but data is {t}.".format(t=type(data)))
-        elif fmt == 'numeric' and not isinstance(data, NUMERICS):
+        if fmt == 'text' and not isinstance(pdata, str):
+            raise ValueError("You specifided the format as 'text' but data is {t}.".format(t=type(pdata)))
+        elif fmt == 'numeric' and not isinstance(pdata, NUMERICS):
             raise ValueError('numeric input must be of type {n}'.format(n=NUMERICS))
 
-        jdata = json.dumps('"data":{"input" : {"{f}" : [ "{d}" ] }}}'.format(f=fmt,
-                                                                             d=data))
+        #jdata = json.dumps('{"data":{"input" : {\"{f}\" : [ \"{d}\" ] }}}'.format(f=fmt,d=pdata))
+        jdata = json.dumps({"data": {"input" : {fmt : [ pdata ]}}})
     
         prediction_uri = "{t}?data={b}%2F{d}/predict".format(t=TRAINING_URI, 
                                                              b=self.bucket, 
                                                              d=self.data)
-        headers = {"Content-Type":"application/application/json", 
-                   "Authorization": "GoogleLogin auth=auth-token"}
-        body = {}
-        resp, content = self.h.request(prediction_uri, "POST", urlencode(body),
-                                       headers=jdata)
+        headers = {"Content-Type":"application/json", 
+                   "Authorization":"GoogleLogin auth={a}".format(a=self.auth)}
+        #body = {}
+        resp, content = self.h.request(prediction_uri, "POST", jdata,
+                                       headers=headers)
         
         status = resp["status"]
-        if 'status' != "200":
+        if status != "200":
             raise HTTPError('HTTP status code: {s}'.format(s=status))
         
         #TODO Is it content or an element within content?
-        return self._parse_prediction_json(content)
+        jcontent = json.loads(content)
+        return self._parse_prediction_json(jcontent)
         
     
     def _parse_prediction_json(self, json):
@@ -294,10 +295,10 @@ class Prediction():
                 'Expected dict as arg but received %s: %s' % type(json), 
                 json)
         
-        if json.get('data').get('output'):
-            output = json['data']['output']
-        elif json.get('data').get('kind'):
+        if json.get('data'):
             output = json['data']
+        else:
+            output = {"Error": json}
             
         return output
             
