@@ -113,7 +113,7 @@ class TestPredict(unittest.TestCase):
             self.assertEqual(type(e), ValueError)
             
     def test_predict_good(self):
-        
+        pass
             
     
         
