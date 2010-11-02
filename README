@@ -18,3 +18,8 @@ examples
 TODO
     -   Handle captcha
     -   Can we pipeline the entire process with coroutines?
+    -   Auth: def fetch_auth()
+            If it exists in .boto use that
+            else: new one and write to .boto
+            .   keyword arg persist=True|False to write to .boto
+            .   keyword to new=True|False - get new auth and use that.
