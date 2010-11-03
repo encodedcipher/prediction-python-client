@@ -21,10 +21,12 @@ else:
     password = args[1]
         
 try:
-    auth = Auth(email, password)
-    #auth = Auth(email, password, boto_config="/usr/local/src/prediction-python-client/.boto")
-            
-    print('Auth token: {t}'.format(t=auth.token))
+    #auth = Auth(email, password)
+    auth = Auth(email, password, botoconfig="/home/rhancock/.boto")
+    #auth = Auth(email, password, botoconfig="/home/rhancock/.boto", newtoken=True)
+    token = auth.fetch_token()
+    
+    print('Auth token: {t}'.format(t=token))
     print('\nKeep this token.handy in case you want to reuse the session later!')
 except HTTPError:
     if auth.captcha.get('CaptchaToken'):
