@@ -13,7 +13,7 @@ import prediction as p
 #------START--- Change to your valid entries -----------
 good_email = "hancock.robert@gmail.com"
 good_password = "w1ls0n1136"
-boto_config = "/home/rhancock/.boto"
+good_boto_config = "/home/rhancock/.boto"
 good_bucket = "utest"
 good_object = "small"
 #------STOP--- Change to your valid entries -----------
@@ -25,7 +25,8 @@ class TestAuth(unittest.TestCase):
         
     def test_good_email_password(self):
         a = p.Auth(good_email, good_password)
-        self.assertEquals(a.http_status, "200")
+        token = a.fetch_token()
+        self.assertEquals(type(token), str)
         
     def test_bad_creds(self):
         # assertRaises does not work with init and optional arg
@@ -39,6 +40,13 @@ class TestAuth(unittest.TestCase):
             a = p.Auth(good_email, good_password, botoconfig="badfile")
         except Exception as e:
             self.assertEqual(type(e), OSError)
+            
+    def test_bad_newtoken(self):
+        try:
+            a = p.Auth(good_email, good_password, botoconfig=good_boto_config, newtoken="notbool")
+        except Exception as e:
+            self.assertEqual(type(e), ValueError)
+            
  
 class TestStorage(unittest.TestCase):
     def setUp(self):
@@ -65,7 +73,8 @@ class TestStorage(unittest.TestCase):
 class TestPrediction(unittest.TestCase):
     def setUp(self):
         global boto_config
-        self.auth = p.Auth(good_email, good_password, boto_config)
+        self.auth = p.Auth(good_email, good_password, good_boto_config)
+        self.token = self.auth.fetch_token()
         self.bad_auth = 'badauth'
         self.bad_bucket = "badbucket"
         self.bad_object = "baddata"
@@ -78,13 +87,13 @@ class TestPrediction(unittest.TestCase):
     
     def test_auth_bad_bucket(self):
         try:
-            pred = p.Prediction(self.auth.token, self.bad_bucket, good_object)
+            pred = p.Prediction(self.token, self.bad_bucket, good_object)
         except Exception as e:
             self.assertEqual(type(e), p.StorageError)
             
     def test_auth_bad_object(self):
         try:
-            pred = p.Prediction(self.auth.token, good_bucket, self.bad_object)
+            pred = p.Prediction(self.token, good_bucket, self.bad_object)
         except Exception as e:
             self.assertEqual(type(e), p.StorageError)
             
@@ -93,7 +102,8 @@ class TestPredict(unittest.TestCase):
         self.bad_fmt = "badformat"
         self.test_data = "test data"
         self.auth = p.Auth(good_email, good_password)
-        self.pred = p.Prediction(self.auth.token, good_bucket, good_object)
+        self.token = self.auth.fetch_token()
+        self.pred = p.Prediction(self.token, good_bucket, good_object)
         
     def test_predict_bad_format(self):
         try:
