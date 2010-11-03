@@ -22,7 +22,7 @@ except ImportError:
     sys.exit(1)
                      
 __author__ = ('hancock.robert@gmail.com (Robert Hancock)')
-__version__ = "0.1g"
+__version__ = "0.1a"
     
 CLIENT_LOGIN_URI = "https://www.google.com/accounts/ClientLogin"
 TRAINING_URI = "https://www.googleapis.com/prediction/v1.1/training"
