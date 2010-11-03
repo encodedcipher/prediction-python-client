@@ -158,6 +158,7 @@ class Auth():
 
         
 class Storage():
+    """ Helper functions for Google Storage. """
     def __init__(self, auth_token):
         self.auth_token = auth_token
         self.h = httplib2.Http(".cache")
@@ -261,7 +262,11 @@ class Prediction():
                
     def predict(self, fmt, pdata):
         """
-        Submit prediction
+        Submit the prediction.
+        
+        Args:
+            fmt:     The format of the data.  See formats tuple below.
+            pdata:   The prediction data.
         """
         formats = ("text", "numeric", "mixture")
         if fmt not in formats:
@@ -275,7 +280,6 @@ class Prediction():
         elif fmt == 'numeric' and not isinstance(pdata, NUMERICS):
             raise ValueError('numeric input must be of type {n}'.format(n=NUMERICS))
 
-        #jdata = json.dumps('{"data":{"input" : {\"{f}\" : [ \"{d}\" ] }}}'.format(f=fmt,d=pdata))
         jdata = json.dumps({"data": {"input" : {fmt : [ pdata ]}}})
     
         prediction_uri = "{t}?data={b}%2F{d}/predict".format(t=TRAINING_URI, 
@@ -283,7 +287,6 @@ class Prediction():
                                                              d=self.data)
         headers = {"Content-Type":"application/json", 
                    "Authorization":"GoogleLogin auth={a}".format(a=self.auth)}
-        #body = {}
         resp, content = self.h.request(prediction_uri, "POST", jdata,
                                        headers=headers)
         
@@ -291,7 +294,6 @@ class Prediction():
         if status != "200":
             raise HTTPError('HTTP status code: {s}'.format(s=status))
         
-        #TODO Is it content or an element within content?
         jcontent = json.loads(content)
         return self._parse_prediction_json(jcontent)
         
