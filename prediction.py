@@ -7,6 +7,7 @@ import getopt
 from optparse import OptionParser
 import ConfigParser
 import time
+import shutil
 
 try:
     import boto
@@ -46,54 +47,72 @@ class TrainingError(Exception):
         return repr(self.value)     
 
 class Auth():
-    """ Google account authorization. """
-    def __init__(self, email, password, botoconfig=""):
+    """ Google account authorization for Google Storage. """
+    def __init__(self, email, password, botoconfig="", newtoken=False):
         """
         Args:
            email:            A valid Google email address.  e.g., kevin_dykstra@gmail.com
            password:         The Google account password.
-           boto_config:      Name of the .boto file
+           botoconfig:       If auth_token exists in this file, return it
+                             else: get a new token, write it to the file, and return it.
+           newtoken:         If true, writes a new token to the .boto file.
         """
         self.email = email
         self.password = password
         self.boto_config = botoconfig
-        self.token = None
+        if not isinstance(newtoken, bool):
+            raise ValueError("Keyword argument newtoken must be type boolean: {e}".format(type(newtoken)))
+        else:
+            self.newtoken = newtoken
+        self.auth_token = None
         self.http_status = None
         self.captcha = {}
+        self.section = "Credentials"
+        self.option = 'authorization'
         self.h = httplib2.Http(".cache")
         
+    def fetch_token(self):
         if self.boto_config:
             if not os.path.isfile(self.boto_config):
                 raise OSError("Cannot find {b}".format(b=self.boto_config))
+            else:
+                self.config = ConfigParser.RawConfigParser()
+                self.config.readfp(open(self.boto_config))
+                if not self.newtoken:
+                    self._fetch_boto_auth()
         
-        self._fetch_auth_token()
-        if self.boto_config:
-            self._write_boto_auth()
+        if not self.auth_token:
+            self._fetch_new_auth_token()
+            if self.boto_config:
+                self._write_boto_auth()
+        
+        return self.auth_token
+        
                 
+    def _fetch_boto_auth(self):
+        if self.config.has_option(self.section, self.option):
+            self.auth_token = self.config.get(self.section, self.option)
+        else:
+            self.auth_token = None
+        
     def _write_boto_auth(self):
         """ If the boto config file exists, write the authorization
         token string to the Credentials section if this token is
         different from the one stored.
+        
+        N.B. When the config writes to file is does not preserver comments
+        in the file.  Therefore, it is backed up with the name:
+        canoncial_filename.nonce, where nonce is the current time in epoch seconds.
         """
-        section = "Credentials"
-        option = 'authorization'
+        self.config.set(self.section, self.option, self.auth_token)
+        path, fname = os.path.split(self.boto_config)
+        boto_backup = os.path.join(path, "{f}.{x}".format(f=fname,x=time.time()))
+        shutil.copyfile(self.boto_config, boto_backup)
         
-        if not os.path.isfile(self.boto_config):
-            raise OSError('Cannot find boto config file {f}'.format(f=self.boto_config))
-        config = ConfigParser.RawConfigParser()
-        config.readfp(open(self.boto_config))
-        if config.has_option(section, option):
-            auth = config.get(section, option)
-        else:
-            auth = None
-        if auth == self.token:
-            return
-        
-        config.set(section, option, self.token)
         with open(self.boto_config, 'w') as fh:
-            config.write(fh)
+            self.config.write(fh)
             
-    def _fetch_auth_token(self):
+    def _fetch_new_auth_token(self):
         """ 
         Request auth token and set class var.
         
@@ -135,7 +154,7 @@ class Auth():
         
         authstring = content[i:].strip("\n")
         s_auth = authstring.split("=")
-        self.token = s_auth[1]
+        self.auth_token = s_auth[1]
 
         
 class Storage():
@@ -280,7 +299,6 @@ class Prediction():
     def _parse_prediction_json(self, json):
         """
         Return a dictionary of just the pertinent data.
-        #TODO Generic parsing of json - see Buzz
         # Categorical
         #{"data":{"output":{"kind":"prediction#output",
                  #"outputLabel":"topLabel"
