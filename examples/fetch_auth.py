@@ -1,4 +1,11 @@
-""" Fetch auth token. """
+""" 
+Fetch the authorization token using your Google account.  
+    If you specify only your email and password a new auth token is returned.
+    If you specify a .boto file and the token is in the file, the value in the file
+    is returned.
+    If you specify the keyword argument newtoken=True, a new token is generated,
+    written to the .boto file, and returned.  This requires a valid value for botoconfig.
+"""
 import sys
 import os
 import getopt
@@ -21,8 +28,9 @@ else:
     password = args[1]
         
 try:
-    #auth = Auth(email, password)
-    auth = Auth(email, password, botoconfig="/home/rhancock/.boto")
+    
+    auth = Auth(email, password)
+    #auth = Auth(email, password, botoconfig="/home/rhancock/.boto")
     #auth = Auth(email, password, botoconfig="/home/rhancock/.boto", newtoken=True)
     token = auth.fetch_token()
     
