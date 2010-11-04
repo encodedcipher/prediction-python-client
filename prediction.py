@@ -32,19 +32,25 @@ class HTTPError(Exception):
     def __init__(self, value):
         self.value = value
     def __str__(self):
-        return repr(self.value)    
+        return repr("HTTPError: "+self.value)    
 
 class StorageError(Exception):
     def __init__(self, value):
         self.value = value
     def __str__(self):
-        return repr(self.value)    
+        return repr("StorageError: "+self.value)    
 
 class TrainingError(Exception):
     def __init__(self, value):
         self.value = value
     def __str__(self):
-        return repr(self.value)     
+        return repr("TrainingError: "+self.value)     
+    
+class NotFoundError(Exception):
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        return repr("NotFoundError: "+self.value)     
 
 class Auth():
     """ Google account authorization for Google Storage. """
@@ -61,7 +67,7 @@ class Auth():
         self.password = password
         self.boto_config = botoconfig
         if not isinstance(newtoken, bool):
-            raise ValueError("Keyword argument newtoken must be type boolean: {e}".format(type(newtoken)))
+            raise ValueError("Keyword argument newtoken must be type boolean: {t}".format(t=type(newtoken)))
         else:
             self.newtoken = newtoken
         self.auth_token = None
@@ -333,6 +339,9 @@ class Prediction():
         resp, content = self.h.request(prediction_uri, "DELETE", urlencode(body),
                                        headers=headers)
         status = resp["status"]
-        if 'status' != "200":
+        if status == "404":
+            raise NotFoundError("bucket:{b}, object:{o}".format(b=self.bucket,
+                                                           o=self.data))
+        if status != "200":
             raise HTTPError('HTTP status code: {s}'.format(s=status))
         
