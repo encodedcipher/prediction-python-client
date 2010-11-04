@@ -2,24 +2,54 @@ Google Prediction API Python Client
 
 Author:  'hancock.robert@gmail.com (Bob Hancock)'
 
+Dependencies
+    boto:
+        -  used to access Google Storage.
+           http://code.google.com/p/boto/
+           
+    httplib2:
+        -  Joe Gregorios's remarkably comprehensive http library.
+           This is the staandard for the GDATA APIs.
+           http://code.google.com/p/httplib2/
+
+Python
+    This was developed with Python 2.6.6, so no gurantees for older versions.
+           
+
 prediction.py
-    This abstracts the REST calls to the API
+    This abstracts the REST calls to the Prediction API and provides a few helper 
+    functions for Google Storage.
     
 examples
     fetch_auth.py
-        Fetch the authorization token using your Google account.
-        
+        Fetch the authorization token using your Google account.  
+        If you specify only your email and password a new auth token is returned.
+        If you specify a .boto file and the token is already in the file, the 
+        value in the file is returned.
+        If you specify the keyword argument newtoken=True, a new token is generated,
+        written to the .boto file, and returned.  This requires a valid value for botoconfig.
+            
     train_model.py
         Using your authorization token, train the model using 
         your bucket and data in Google Storage.  It validates
         the token and the verifies the existence of the resources
         in Google Storage.
         
+    is_training_complete.py
+        Demonstrate how to make periodic calls to see if training is complete.
+        
+    predict.py
+        Submit a prediction and get the results.
+        
+    delete_model.py
+        Delete an existing model.
+        
 TODO
-    -   Handle captcha
-    -   Can we pipeline the entire process with coroutines?
-    -   Auth: def fetch_auth()
-            If it exists in .boto use that
-            else: new one and write to .boto
-            .   keyword arg persist=True|False to write to .boto
-            .   keyword to new=True|False - get new auth and use that.
+    -   Handle captcha.
+    -   More complete unit tests.
+    -   reStructuredText docs
+    
+VERSIONS
+    0.1
+        -   First release
+    
