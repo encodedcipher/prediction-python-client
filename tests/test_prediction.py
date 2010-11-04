@@ -11,16 +11,11 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 import prediction as p
 
 #------START--- Change to your valid entries -----------
-good_email = "hancock.robert@gmail.com"
-good_password = "w1ls0n1136"
-good_boto_config = "/home/rhancock/.boto"
+good_email = "youremai@gmail.com"
+good_password = "yourpassword"
+good_boto_config = "/home/you/.boto"
 good_bucket = "utest"
 good_object = "small"
-#good_email = "youremai@gmail.com"
-#good_password = "yourpassword"
-#good_boto_config = "/home/you/.boto"
-#good_bucket = "utest"
-#good_object = "small"
 
 #------STOP--- Change to your valid entries -----------
 
