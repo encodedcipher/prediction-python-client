@@ -16,6 +16,12 @@ good_password = "w1ls0n1136"
 good_boto_config = "/home/rhancock/.boto"
 good_bucket = "utest"
 good_object = "small"
+#good_email = "youremai@gmail.com"
+#good_password = "yourpassword"
+#good_boto_config = "/home/you/.boto"
+#good_bucket = "utest"
+#good_object = "small"
+
 #------STOP--- Change to your valid entries -----------
 
 class TestAuth(unittest.TestCase):
@@ -122,8 +128,16 @@ class TestPredict(unittest.TestCase):
         except Exception as e:
             self.assertEqual(type(e), ValueError)
             
-    def test_predict_good(self):
-        pass
+    # Place holders.
+    #def test_predict_good(self):
+        #pass
+    
+    #def test_delete_model(self):
+        #pass
+    
+    #def test_delete_model_bad(self):
+        #pass
+        
             
     
         
