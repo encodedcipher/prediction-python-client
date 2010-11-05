@@ -8,13 +8,11 @@ try:
     sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
     from prediction import Storage, HTTPError
 except ImportError:
-    print 'Error importing Prediction library!!'
+    sys.stderr.write('Error importing Prediction library!!')
 
 def main():
     usage = "%prog [-D] auth_token"
     parser = OptionParser(usage)
-    #parser.add_option("-a", "--auth", dest="auth_token", action="store",
-                      #help="Authorization token string.")
     parser.add_option("-D", "--debug", dest="debug", action="store_true",
                       help="Write debug to stdout.")
     

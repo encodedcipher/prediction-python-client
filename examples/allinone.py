@@ -1,6 +1,9 @@
 """ An example of the prediction process from beginning to end. 
 
-We use the language file found at 
+We use the language file found at http://code.google.com/apis/predict/docs/language_id.txt
+
+Prior to running this you have uploaded this file to the Google Storage location
+that you specify on the command line with bucket and gsobject.
 """
 
 import sys
@@ -102,4 +105,4 @@ def main():
         return 1
         
     # Make a prediction
-    resp = p.predict("text", "Is this sentence in english?"")
+    resp = p.predict("text", "Is this sentence in english?")

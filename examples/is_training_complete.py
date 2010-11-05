@@ -14,7 +14,7 @@ def main():
     default_iterations = 6
     default_seconds = 30.0
     
-    usage = "%prog [-Dis] auth_token bucket data"
+    usage = "%prog [-Dis] auth_token bucket gsobject"
     parser = OptionParser(usage)
     parser.add_option("-D", "--debug", dest="debug", action="store_true",
                       help="Write debug to stdout.")
@@ -32,7 +32,7 @@ def main():
     else:
         auth_token = args[0]
         bucket = args[1]
-        data = args[2]
+        gsobject = args[2]
         
     debug = True if options.debug else False
     if options.iterations:
@@ -55,7 +55,7 @@ def main():
         seconds = default_seconds
     if debug: print("seconds={s}".format(s=seconds))
   
-    p = Prediction(auth_token, bucket, data)
+    p = Prediction(auth_token, bucket, gsobject)
 
     training_complete = False
     iteration = 1

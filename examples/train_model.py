@@ -8,7 +8,7 @@ try:
     sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
     from prediction import Prediction, HTTPError
 except ImportError:
-    print 'Error importing Prediction library!!'
+    sys.stderr.write('Error importing Prediction library!!')
 
 def main():
     # make properties of some elements

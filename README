@@ -45,9 +45,15 @@ examples
         Delete an existing model.
         
 TODO
+    -   Verify allinone.    
     -   Handle captcha.
     -   More complete unit tests.
     -   reStructuredText docs
+    -   All in one example
+    -   Correct comment misspellings
+    -   Preserve comments in .boto
+    -   Consistenly refer to data as gsobject.
+    -   Sub sys.stderr.write for print
     
 VERSIONS
     0.1
