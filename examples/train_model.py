@@ -12,7 +12,7 @@ except ImportError:
 
 def main():
     # make properties of some elements
-    usage = "%prog auth_token bucket data"
+    usage = "%prog auth_token bucket gsobject"
     parser = OptionParser(usage)
     parser.add_option("-D", "--debug", dest="debug", action="store_true",
                       help="Write debug to stdout.")
@@ -24,12 +24,12 @@ def main():
     else:
         auth_token = args[0]
         bucket = args[1]
-        data = args[2]
+        gsobject = args[2]
         
     debug = True if options.debug else False
 
     try:
-        p = Prediction(auth_token, bucket, data)
+        p = Prediction(auth_token, bucket, gsobject)
     except Exception as e:
         sys.stderr.write("Prediction() raised: {ex}".format(ex=e))
         return 1
