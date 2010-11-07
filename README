@@ -51,6 +51,8 @@ TODO
     -   reStructuredText docs
     -   Correct comment misspellings
     -   Preserve comments in .boto
+    -   Return data of prediction, how much should we filter out
+        of the dictionary.  Does it always have a data key?
     
 VERSIONS
     0.1
