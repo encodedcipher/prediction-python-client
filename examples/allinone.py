@@ -74,10 +74,17 @@ def main():
         print("Couldn't find the auth token in the HTTP response content.")        
         return 1
     
-    # Get prediction object
+    # Get prediction object.
     p = Prediction(auth_token, bucket, gsobject)
     
-    # Invoke training
+    # Invoke training.
+    try:
+        p.invoke_training()
+    except HTTPError as e:
+        sys.stderr.write("invoke_training returned: {ex}".format(ex=e))
+        return 1
+    
+    # Wait for training to complete.
     training_complete = False
     iteration = 1
     retval = None
@@ -104,5 +111,5 @@ def main():
         if debug: print("Training hasn't completed.  retval={r}".format(r=retval))
         return 1
         
-    # Make a prediction
+    # Make a prediction.
     resp = p.predict("text", "Is this sentence in english?")
