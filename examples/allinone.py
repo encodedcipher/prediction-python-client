@@ -115,7 +115,7 @@ def main():
         return 1
         
     # Make a prediction.
-    resp = p.predict("text", "Is this sentence in english?")
+    resp = p.predict("text", "Aujourd'hui, maman est morte. Ou peut-être hier, je ne sais pas.")
     print(resp)
     
 if __name__ == "__main__":
