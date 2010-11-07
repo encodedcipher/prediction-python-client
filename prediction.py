@@ -300,7 +300,7 @@ class Prediction():
 
         jdata = json.dumps({"data": {"input" : {fmt : [ pdata ]}}})
     
-        prediction_uri = "{t}?data={b}%2F{d}/predict".format(t=TRAINING_URI, 
+        prediction_uri = "{t}/{b}%2F{d}/predict".format(t=TRAINING_URI, 
                                                              b=self.bucket, 
                                                              d=self.data)
         headers = {"Content-Type":"application/json", 
