@@ -118,8 +118,8 @@ class Auth():
         token string to the Credentials section if this token is
         different from the one stored.
         
-        N.B. When the config writes to file is does not preserver comments
-        in the file.  Therefore, it is backed up with the name:
+        N.B. When the config writes to the file it does not preserver comments
+        in the file.  The original file is backed up with the name:
         canoncial_filename.nonce, where nonce is the current time in epoch seconds.
         """
         self.config.set(self.section, self.option, self.auth_token)
@@ -320,13 +320,13 @@ class Prediction():
         """
         Return a dictionary of just the pertinent data.
         # Categorical
-        #{"data":{"output":{"kind":"prediction#output",
+        #"output":{"kind":"prediction#output",
                  #"outputLabel":"topLabel"
                  #"outputMulti":[{"label":"value", "score":x.xx}
                                  #{"label":"value", "score":x.xx}
                                  #...]}}
         #Regression
-        #{"data":{"kind":"prediction#output", "outputValue":"x.xx"}}
+        #"kind":"prediction#output", "outputValue":"x.xx"}}
         """
         if not isinstance(json, dict):
             raise TypeError(
