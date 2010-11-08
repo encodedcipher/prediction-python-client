@@ -20,6 +20,7 @@ from optparse import OptionParser
 import ConfigParser
 import time
 import shutil
+import tempfile
 
 try:
     import boto
@@ -176,11 +177,50 @@ class Auth():
 
         
 class Storage():
-    """ Helper functions for Google Storage. """
+    """ Helper functions for Google Storage.
+    
+    Storge represents your Google Storage account.  The intent is not to duplicate
+    the boto functions, but to provide some syntactic sugar.
+    """
     def __init__(self, auth_token):
         self.auth_token = auth_token
+        self._scheme = "gs"
         self.h = httplib2.Http(".cache")
 
+    def create_bucket(self, bucket):
+        uri = boto.BucketStorageUri(self._scheme, bucket_name=bucket)
+        try:
+            uri.create_bucket()
+        except boto.exception.GSCreateError as e:
+            raise Storage(e.error_message)
+        
+    def delete_bucket(self, bucket):
+        uri = boto.BucketStorageUri(self._scheme, bucket_name=bucket)
+        try:
+            uri.delete_bucket()
+        except boto.exception.GSResponseError as e:
+            raise Storage(e.error_message)
+        
+    def upload_file(self, bucket_name, object_name):
+        src_uri = boto.storage_uri(object_name, "file")
+        dst_uri = boto.storage_uri(bucket_name, "gs")
+        
+        new_dst_uri = dst_uri.clone_replace_name(src_uri.object_name)
+        
+        "Create a new destination key object."
+        dst_key = new_dst_uri.new_key()
+        
+        "Retrieve the source key and create a source key object."
+        src_key = src_uri.get_key()
+        
+        "Create a temporary file to hold your copy operation."
+        tmp = tempfile.TemporaryFile()
+        src_key.get_file(tmp)
+        tmp.seek(0)
+        
+        "Upload the file."
+        dst_key.set_contents_from_file(tmp)
+        
     def fetch_buckets(self):
         """
         N.B. The boto library requires your auth token to be in the .boto 
@@ -192,27 +232,33 @@ class Storage():
         Return:
             A list of all bucket names. """
         config = boto.config
-        uri = boto.storage_uri("", "gs")
+        uri = boto.storage_uri("", self._scheme)
         buckets = uri.get_all_buckets()
         
         return [b.name for b in buckets]
+                 
+    def fetch_objects(self, bucket):
+        uri = boto.BucketStorageUri(self._scheme, bucket_name=bucket)
+        objs =  uri.get_bucket(bucket)
+        return [o.name for o in objs]
     
-    def fetch_ojbects(self, bucket):
-        uri = boto.storage_uri(bucket, "gs")
+    def delete_object(self, bucket, object_name):
+        uri = boto.storage_uri(bucket, self._scheme)
+        objs =  uri.get_bucket(bucket)
+        for o in objs:
+            if o.name == object_name:
+                o.delete()
+                break
 
-        #"List your objects."
-        objects = uri.get_bucket()
-        return [obj.name for obj in objects]
-                
 
 class Prediction():
     """ Fuctions for training, status, predictionm and deletion.
 
     N.B.   You need have defined the bucket and data prior to this.
     """
-    def __init__(self, auth, bucket, data):
+    def __init__(self, auth, bucket, obj):
         self.bucket = bucket
-        self.data = data
+        self.obj = obj
         self.auth = auth
         self.h = httplib2.Http(".cache")
         self.storage = Storage(self.auth)
@@ -220,17 +266,17 @@ class Prediction():
         if not self._bucket_exists():
             raise StorageError("Cannot find {b} in Google Storage.".format(b=self.bucket))
             
-        if not self._data_exists():
-            raise StorageError("Cannot find {d} in bucket {b}.".format(d=self.data,
+        if not self._obj_exists():
+            raise StorageError("Cannot find {d} in bucket {b}.".format(d=self.obj,
                                                                        b=self.bucket))
 
     def _bucket_exists(self):
         buckets =  self.storage.fetch_buckets()
         return self.bucket in buckets
     
-    def _data_exists(self):
-        objects = self.storage.fetch_ojbects(self.bucket)
-        return self.data in objects
+    def _obj_exists(self):
+        objects = self.storage.fetch_objects(self.bucket)
+        return self.obj in objects
             
     def invoke_training(self):
         """
@@ -240,7 +286,7 @@ class Prediction():
                    "Authorization":"GoogleLogin auth={a}".format(a=self.auth)}
         body = '{data:{}}'
         training_uri = "{t}?data={b}%2F{d}".format(t=TRAINING_URI, b=self.bucket, 
-                                                      d=self.data)
+                                                      d=self.obj)
         
         resp, content = self.h.request(training_uri, "POST", body, headers=headers)
         status = resp["status"]
@@ -255,7 +301,7 @@ class Prediction():
         """
         is_complete_uri="{tui}/{b}%2F{d}".format(tui=TRAINING_URI,
                                                  b=self.bucket,
-                                                 d=self.data)
+                                                 d=self.obj)
         headers = {"Authorization":"GoogleLogin auth={a}".format(a=self.auth)}
         resp, content = self.h.request(is_complete_uri, "GET", headers=headers)
 
@@ -302,7 +348,7 @@ class Prediction():
     
         prediction_uri = "{t}/{b}%2F{d}/predict".format(t=TRAINING_URI, 
                                                              b=self.bucket, 
-                                                             d=self.data)
+                                                             d=self.obj)
         headers = {"Content-Type":"application/json", 
                    "Authorization":"GoogleLogin auth={a}".format(a=self.auth)}
         resp, content = self.h.request(prediction_uri, "POST", jdata,
@@ -343,17 +389,17 @@ class Prediction():
 
     def delete_model(self):
         """ Delete a model. """
-        prediction_uri = "{t}?data={b}%2F{d}/predict".format(t=TRAINING_URI, 
+        prediction_uri = "{t}/{b}%2F{d}/predict".format(t=TRAINING_URI, 
                                                              b=self.bucket, 
-                                                             d=self.data)        
+                                                             d=self.obj)
         headers = {"Authorization": "GoogleLogin auth=auth-token"}
         body = {}
-        resp, content = self.h.request(prediction_uri, "DELETE", urlencode(body),
+        resp, content = self.h.request(prediction_uri, "DELETE", body,
                                        headers=headers)
         status = resp["status"]
         if status == "404":
             raise NotFoundError("bucket:{b}, object:{o}".format(b=self.bucket,
-                                                           o=self.data))
+                                                           o=self.obj))
         if status != "200":
             raise HTTPError('HTTP status code: {s}'.format(s=status))
         
