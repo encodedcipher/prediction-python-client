@@ -44,17 +44,21 @@ examples
     delete_model.py
         Delete an existing model.
         
+    allinone.py
+        The entire process in one file.  Use the included language
+        dataset file as you data for training.
+        
 TODO
-    -   Verify allinone.    
     -   Handle captcha.
     -   More complete unit tests.
     -   reStructuredText docs
-    -   Correct comment misspellings
-    -   Preserve comments in .boto
-    -   Return data of prediction, how much should we filter out
-        of the dictionary.  Does it always have a data key?
+    -   Preserve comments in .boto config
     
 VERSIONS
+    0.2
+        -   allinone example.
+        -   Expanded Storage functionality.
+        -   Added unit tests.
     0.1
         -   First release
     

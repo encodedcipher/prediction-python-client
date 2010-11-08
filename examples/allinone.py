@@ -1,6 +1,7 @@
 """ An example of the prediction process from beginning to end. 
 
 We use the language file found at http://code.google.com/apis/predict/docs/language_id.txt
+which is also included in the examples directory.
 
 Prior to running this you have uploaded this file to the Google Storage location
 that you specify on the command line with bucket and gsobject.
