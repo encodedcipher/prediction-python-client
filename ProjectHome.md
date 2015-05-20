@@ -1,0 +1,1 @@
+The Prediction Client Library enables you to work with the Google Prediction API for either installed applications or web applications in Python.
